@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+    </style>
+    <script type="module">
+        import init, { Matrix } from './pkg/wasm_matrix_calculator.js';
+
+        async function run() {
+            await init();
+        }
+
+        run();
+
+        window.performOperation = function(operation) {
+            try {
+                const matrix1Data = parseMatrixData(document.getElementById('matrix1').value);
+                const matrix2Data = parseMatrixData(document.getElementById('matrix2').value);
+
+                const matrix1 = Matrix.new(matrix1Data.rows, matrix1Data.cols, matrix1Data.data);
+                const matrix2 = Matrix.new(matrix2Data.rows, matrix2Data.cols, matrix2Data.data);
+
+                let result = Matrix.new(0, 0, []);
+                switch (operation) {
+                    case 'add':
+                        if (checkAdditionSubtractionDimensions(matrix1Data, matrix2Data)) {
+                            result = matrix1.add(matrix2);
+                        }
+                        break;
+                    case 'subtract':
+                        if (checkAdditionSubtractionDimensions(matrix1Data, matrix2Data)) {
+                            result = matrix1.subtract(matrix2);
+                        }
+                        break;
+                    case 'multiply':
+                        if (checkMultiplicationDimensions(matrix1Data, matrix2Data)) {
+                            result = matrix1.multiply(matrix2);
+                        }
+                        break;
+                    default:
+                        throw new Error('Invalid operation');
+                }
+
+                if (!result.is_empty()) {
+                    displayMatrixResult(result);
+                } else {
+                    throw new Error('Result matrix is empty, check for operation compatibility');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        };
+
+        function parseMatrixData(input) {
+            const rows = input.trim().split('\n').map(row => row.trim().split(',').map(Number));
+            const data = [].concat(...rows);
+            return { rows: rows.length, cols: rows[0].length, data };
+        }
+
+        function checkAdditionSubtractionDimensions(matrix1, matrix2) {
+            return matrix1.rows === matrix2.rows && matrix1.cols === matrix2.cols;
+        }
+
+        function checkMultiplicationDimensions(matrix1, matrix2) {
+            return matrix1.cols === matrix2.rows;
+        }
+
+        function displayMatrixResult(matrix) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<h2>Result Matrix:</h2>';
+
+            const table = document.createElement('table');
+
+            for (let i = 0; i < matrix.rows(); i++) {
+                const row = table.insertRow();
+                for (let j = 0; j < matrix.cols(); j++) {
+                    const cell = row.insertCell();
+                    cell.textContent = matrix.get_element(i, j);
+                }
+            }
+
+            resultDiv.appendChild(table);
+        }
+    </script>
+</head>
+<body>
+<h1>Matrix Calculator</h1>
+
+<label for="matrix1">Matrix 1:</label>
+<textarea id="matrix1" placeholder="Enter matrix data (comma-separated)"></textarea>
+
+<label for="matrix2">Matrix 2:</label>
+<textarea id="matrix2" placeholder="Enter matrix data (comma-separated)"></textarea>
+
+<button onclick="performOperation('add')">Addition</button>
+<button onclick="performOperation('subtract')">Subtraction</button>
+<button onclick="performOperation('multiply')">Multiplication</button>
+
+<div id="result"></div>
+</body>
+</html>
